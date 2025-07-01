@@ -7,6 +7,7 @@ toolchain go1.24.4
 require (
 	github.com/google/gopacket v1.1.19
 	github.com/vishvananda/netlink v1.3.1
+	golang.org/x/text v0.3.0
 )
 
 require (

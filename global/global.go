@@ -8,6 +8,7 @@ const Iface = "WLAN"
 var SysType string
 var SrcIP string
 var SrcPort uint16
+var SrcSubnetMask string
 var SrcMac []byte
 var DstMac []byte
 var InterfaceToDeviceDict map[string]string
