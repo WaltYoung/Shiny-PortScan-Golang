@@ -6,6 +6,7 @@ import (
 	"PortScan/utils"
 	"encoding/hex"
 	"fmt"
+	"net"
 	"runtime"
 	"strconv"
 )
@@ -103,7 +104,7 @@ func main() {
 				}
 			}
 		} else {
-			global.DstMac = global.GatewayMacAddr
+			global.DstMac = net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 			for _, dstIP := range ips {
 				if err != nil {
 					fmt.Println("Error:", err)
