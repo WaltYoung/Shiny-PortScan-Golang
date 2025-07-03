@@ -53,7 +53,7 @@ func SYNscan(srcIP string, srcPort uint16, dstIP string, dstPort uint16, iface s
 		case packet := <-packetSource.Packets():
 			if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
 				ipContent, _ := ipLayer.(*layers.IPv4)
-				if !ipContent.SrcIP.Equal(net.ParseIP(dstIP)) {
+				if !ipContent.SrcIP.Equal(net.ParseIP(dstIP)) || !ipContent.DstIP.Equal(net.ParseIP(srcIP)) {
 					continue
 				}
 			}
