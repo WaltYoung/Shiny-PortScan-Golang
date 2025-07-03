@@ -2,6 +2,7 @@ package core
 
 import (
 	"PortScan/global"
+	"bytes"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -26,6 +27,7 @@ func SYNscan(srcIP string, srcPort uint16, dstIP string, dstPort uint16, iface s
 		SrcIP:    net.ParseIP(srcIP).To4(),
 		DstIP:    net.ParseIP(dstIP).To4(),
 		Protocol: layers.IPProtocolTCP,
+		TTL:      128,
 	}
 	tcp := &layers.TCP{
 		SrcPort: layers.TCPPort(srcPort),
@@ -51,6 +53,12 @@ func SYNscan(srcIP string, srcPort uint16, dstIP string, dstPort uint16, iface s
 	for {
 		select {
 		case packet := <-packetSource.Packets():
+			if ethLayer := packet.Layer(layers.LayerTypeEthernet); ethLayer != nil {
+				ethContent, _ := ethLayer.(*layers.Ethernet)
+				if !bytes.Equal(ethContent.DstMAC, srcMac) {
+					continue
+				}
+			}
 			if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
 				ipContent, _ := ipLayer.(*layers.IPv4)
 				if !ipContent.SrcIP.Equal(net.ParseIP(dstIP)) || !ipContent.DstIP.Equal(net.ParseIP(srcIP)) {
