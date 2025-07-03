@@ -67,7 +67,7 @@ func GetUnixGateway(ifaceName string) (string, error) {
 
 // parseUnixGateway 解析Unix系统的网关信息
 func parseUnixGateway(output, ifaceName string) (string, error) {
-	lines := strings.Split(string(output), "\n")
+	lines := strings.Split(output, "\n")
 
 	for _, line := range lines {
 		if strings.Contains(line, "default") || strings.Contains(line, "0.0.0.0") {
@@ -115,7 +115,7 @@ func getInterfaceIPs(ifaceName string) ([]string, error) {
 		return nil, fmt.Errorf("获取IP地址失败: %v", err)
 	}
 
-	ips := []string{}
+	var ips []string
 	for _, addr := range addrs {
 		ipNet, ok := addr.(*net.IPNet)
 		if !ok {

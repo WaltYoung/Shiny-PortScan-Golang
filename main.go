@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"runtime"
 	"strconv"
+	"sync"
+	"time"
 )
 
 func init() {
@@ -69,52 +71,46 @@ func main() {
 	fmt.Print("Enter scan mode (syn, tcp) Default syn:")
 	var scanMode string
 	fmt.Scanln(&scanMode)
-	var flag bool
 	if scanMode == "tcp" {
 		fmt.Println("Using TCP connect scan mode")
-		for _, ip := range ips {
-			for _, port := range ports {
-				flag = core.TCPconnect(ip.String(), port, global.Timeout)
-				if flag {
-					fmt.Printf("Port %d is open on %s\n", port, ip)
-				} else {
-					fmt.Printf("Port %d is closed on %s\n", port, ip)
-				}
-			}
-		}
 	} else {
 		fmt.Println("Using SYN scan mode")
-		maskLen, err := utils.SubNetMaskToLen(global.SrcSubnetMask)
-		if utils.IsIPInSubnet(global.SrcIP+"/"+strconv.Itoa(maskLen), ips[0]) {
-			for _, dstIP := range ips {
-				global.DstMac, err = utils.ArpGetMacAddr(global.SrcIP, global.SrcMac, dstIP.String(), global.Iface)
-				if err != nil {
-					fmt.Println("Error:", err)
-					return
-				}
-				for _, dstPort := range ports {
-					flag, err = core.SYNscan(global.SrcIP, global.SrcPort, dstIP.String(), dstPort, global.Iface, global.SrcMac, global.DstMac)
-					if flag {
-						fmt.Printf("Port %d is open on %s\n", dstPort, dstIP)
-					} else {
-						fmt.Printf("Port %d is closed on %s\n", dstPort, dstIP)
-						fmt.Println("Error:", err)
-					}
-				}
-			}
-		} else {
-			global.DstMac = global.GatewayMacAddr
-			for _, dstIP := range ips {
-				for _, dstPort := range ports {
-					flag, err = core.SYNscan(global.SrcIP, global.SrcPort, dstIP.String(), dstPort, global.Iface, global.SrcMac, global.DstMac)
-					if flag {
-						fmt.Printf("Port %d is open on %s\n", dstPort, dstIP)
-					} else {
-						fmt.Printf("Port %d is closed on %s\n", dstPort, dstIP)
-						fmt.Println("Error:", err)
-					}
-				}
+	}
+	start := time.Now()
+	var inSubnet bool
+	maskLen, err := utils.SubNetMaskToLen(global.SrcSubnetMask)
+	inSubnet = utils.IsIPInSubnet(global.SrcIP+"/"+strconv.Itoa(maskLen), ips[0])
+	var wg sync.WaitGroup
+	taskCount := len(ips) * len(ports)
+	tasks := make(chan global.Task, taskCount)
+	results := make(chan global.Result, taskCount)
+	// 启动协程池
+	for i := 0; i < global.WorkNum; i++ {
+		wg.Add(1)
+		go core.Worker(scanMode, inSubnet, tasks, results, &wg)
+	}
+	// 向协程池提交任务
+	for _, ip := range ips {
+		for _, port := range ports {
+			tasks <- global.Task{
+				IP:   ip,
+				Port: port,
 			}
 		}
 	}
+	close(tasks)
+	wg.Wait()      // 等待所有 Worker 协程完成
+	close(results) // 确保所有结果写入后关闭通道
+	for res := range results {
+		if res.Flag {
+			fmt.Printf("Port %d is open on %s\n", res.Task.Port, res.Task.IP)
+		} else {
+			//fmt.Printf("Port %d is closed on %s\n", res.Task.Port, res.Task.IP)
+			if res.Err != nil {
+				fmt.Printf("Error: %v Port %d is closed on %s", res.Err, res.Task.Port, res.Task.IP)
+			}
+		}
+	}
+	end := time.Now()
+	fmt.Printf("Scan completed in %v seconds\n", end.Sub(start).Seconds())
 }

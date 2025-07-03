@@ -4,6 +4,7 @@ import "time"
 
 const Timeout = 2 * time.Second
 const Iface = "WLAN"
+const WorkNum = 50
 
 var SysType string
 var SrcIP string
