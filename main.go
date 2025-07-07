@@ -107,7 +107,7 @@ func main() {
 		} else {
 			//fmt.Printf("Port %d is closed on %s\n", res.Task.Port, res.Task.IP)
 			if res.Err != nil {
-				fmt.Printf("Error: %v Port %d is closed on %s", res.Err, res.Task.Port, res.Task.IP)
+				fmt.Printf("Error: %v Port %d is closed on %s\n", res.Err, res.Task.Port, res.Task.IP)
 			}
 		}
 	}
